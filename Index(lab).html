@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<!--
+  МурКниги — лендинг онлайн-магазина книг (тематика «Пушистый друг»).
+  Структура:
+    header (sticky, бургер-меню на мобильных)
+    main
+      .hero        — первый экран, фоновое фото, парящие SVG-котики (перетаскиваются мышью/пальцем)
+      #about       — история магазина + акцентные цифры
+      #catalog     — 4 карточки книг: 3D-переворот на десктопе, аккордеон на мобильных
+      #promo       — акции (3 плашки) + #bonus — бонусная программа
+      #contacts    — адрес, график, контакты, соцсети, заглушка карты
+    footer
+  Ключевые фичи:
+    — чистый CSS (без фреймворков), узор из лапок на фоне секций, неоновые акценты;
+    — fade-in секций при скролле (IntersectionObserver);
+    — перетаскиваемые котики (Pointer Events, ограничение по границам hero);
+    — бургер-меню, аккордеон аннотаций, отклик кнопки «В корзину»;
+    — адаптивность, семантика, alt-тексты, prefers-reduced-motion.
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>МурКниги — книги, в которых мурчит уют</title>
+<meta name="description" content="МурКниги — уютный онлайн-магазин книг о котиках и для тех, кто их любит. Подборка добрых историй, доставка за 2–3 дня, бонусная программа.">
+<meta name="theme-color" content="#FFF8EE">
+<!-- Favicon: котик в data-URI (без лишнего запроса) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M28 37 22 8l27 14zM72 37 78 8 51 22z' fill='%23C4442A'/%3E%3Cellipse cx='50' cy='55' rx='28' ry='25' fill='%23C4442A'/%3E%3Cellipse cx='40' cy='50' rx='3.6' ry='4.6' fill='%23FFF8EE'/%3E%3Cellipse cx='60' cy='50' rx='3.6' ry='4.6' fill='%23FFF8EE'/%3E%3C/svg%3E">
+<!-- Preconnect к GitHub-CDN для ускорения загрузки изображений -->
+<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
+<!-- Open Graph: красивый превью-сниппет при шеринге в соцсетях и мессенджерах -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="МурКниги">
+<meta property="og:title" content="МурКниги — книги, в которых мурчит уют">
+<meta property="og:description" content="Уютный онлайн-магазин книг о котиках. Подборка добрых историй, доставка за 2–3 дня, бонусная программа «Мурр-баллы».">
+<meta property="og:image" content="https://raw.githubusercontent.com/dally11001/VS-code/main/3456.jpg">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+/* ============ ТОКЕНЫ ============ */
+:root{
+  --cream:#FFF8EE;
+  --cream-2:#FFFDF8;
+  --beige:#F3E7D6;
+  --sand:#E8D6BE;
+  --terracotta:#C4442A;
+  --terracotta-dark:#9E3320;
+  --amber:#FFB24B;
+  --neon:#FF9A2E;
+  --brown:#8B4A2B;
+  --ink:#3A2A22;
+  --muted:#6B5648;
+  --radius:22px;
+  --shadow:0 10px 30px rgba(139,74,43,.14);
+  --paw-url:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='%23C4442A' fill-opacity='0.07'%3E%3Cellipse cx='70' cy='94' rx='24' ry='19'/%3E%3Ccircle cx='42' cy='64' r='11'/%3E%3Ccircle cx='64' cy='50' r='11'/%3E%3Ccircle cx='88' cy='53' r='11'/%3E%3Ccircle cx='106' cy='74' r='9'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ============ БАЗА ============ */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Open Sans","Helvetica Neue",Arial,sans-serif;
+  font-size:16px;
+  line-height:1.65;
+  color:var(--ink);
+  background:var(--cream);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+h1,h2,h3,h4{line-height:1.2;letter-spacing:-.02em}
+:focus-visible{outline:2px solid var(--neon);outline-offset:3px;border-radius:6px}
+
+/* Ссылка «Пропустить навигацию» — доступность для клавиатуры/скринридеров */
+.skip-link{
+  position:fixed;top:-100%;left:1rem;z-index:300;
+  padding:.6rem 1.2rem;border-radius:0 0 14px 14px;
+  background:var(--terracotta);color:var(--cream);font-weight:700;
+  transition:top .25s ease;
+}
+.skip-link:focus{top:0}
+
+.container{width:min(1180px,100% - 2.5rem);margin-inline:auto}
+.section{position:relative;padding:clamp(3.5rem,8vw,6rem) 0}
+.section > .container{position:relative;z-index:1}
+.section h2{font-size:clamp(1.6rem,3.2vw,2.4rem);margin:0 0 .6rem}
+.section-lead{margin:0 0 1rem;color:var(--muted);max-width:60ch}
+
+.paws::before{
+  content:"";position:absolute;inset:0;
+  background-image:var(--paw-url);
+  background-size:170px 170px;
+  pointer-events:none;
+}
+
+/* ============ КНОПКИ ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  padding:.85rem 1.6rem;border-radius:999px;border:2px solid transparent;
+  font-weight:700;font-size:1rem;cursor:pointer;text-align:center;
+  transition:transform .2s ease,box-shadow .25s ease,background .25s ease,color .25s ease;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--amber),var(--neon));
+  color:#4A2410;
+  box-shadow:0 8px 24px rgba(255,154,46,.35),0 0 0 1px rgba(255,178,75,.65);
+}
+.btn-primary:hover,.btn-primary:focus-visible{
+  transform:translateY(-3px);
+  box-shadow:0 14px 32px rgba(255,154,46,.5),0 0 0 2px rgba(255,178,75,.95);
+}
+.btn-ghost{
+  background:rgba(255,248,238,.12);color:var(--cream);
+  border-color:rgba(255,248,238,.55);backdrop-filter:blur(4px);
+}
+.btn-ghost:hover,.btn-ghost:focus-visible{background:rgba(255,248,238,.24);transform:translateY(-3px)}
+
+/* ============ ШАПКА ============ */
+.site-header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,248,238,.9);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(139,74,43,.14);
+}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:72px}
+.logo{
+  display:inline-flex;align-items:center;gap:.45rem;
+  font-weight:800;font-size:1.3rem;letter-spacing:-.03em;color:var(--terracotta);
+}
+.logo span{color:var(--brown)}
+.logo svg{width:20px;height:20px;color:var(--neon)}
+
+.nav ul{display:flex;gap:1.7rem;list-style:none;margin:0;padding:0}
+.nav a{
+  position:relative;display:inline-block;padding:.35rem 0;
+  font-weight:600;font-size:.95rem;color:var(--muted);transition:color .25s;
+}
+.nav a::after{
+  content:"";position:absolute;left:0;bottom:0;width:100%;height:2px;border-radius:2px;
+  background:var(--neon);transform:scaleX(0);transform-origin:left;
+  transition:transform .28s ease;
+}
+.nav a:hover,.nav a:focus-visible{color:var(--terracotta)}
+.nav a:hover::after,.nav a:focus-visible::after{transform:scaleX(1)}
+
+.burger{
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  width:44px;height:44px;padding:0;border-radius:13px;cursor:pointer;
+  background:transparent;border:1px solid rgba(139,74,43,.28);
+}
+.burger span{display:block;width:20px;height:2px;border-radius:2px;background:var(--brown);transition:transform .3s ease,opacity .2s ease}
+.burger[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.burger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.burger[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ============ HERO ============ */
+.hero{
+  position:relative;display:flex;align-items:center;
+  min-height:min(88vh,780px);padding:clamp(4rem,9vw,6rem) 0;
+  overflow:hidden;background:#3A2A22;
+}
+.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(105deg,rgba(58,34,24,.88) 0%,rgba(58,34,24,.66) 45%,rgba(196,68,42,.42) 100%);
+}
+.hero-content{position:relative;z-index:2;max-width:720px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.5rem;margin:0 0 1.2rem;
+  padding:.4rem 1rem;border-radius:999px;
+  background:rgba(255,178,75,.16);border:1px solid rgba(255,178,75,.55);
+  color:var(--amber);font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+}
+.hero-badge svg{width:15px;height:15px}
+.hero h1{
+  margin:0 0 1rem;font-weight:800;
+  font-size:clamp(1.9rem,4.6vw,3.5rem);line-height:1.12;
+  color:#FFF9F1;text-shadow:0 3px 24px rgba(0,0,0,.35);
+}
+.hero-sub{margin:0 0 2rem;max-width:50ch;font-size:clamp(1rem,1.6vw,1.15rem);color:rgba(255,248,238,.88)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:.9rem}
+
+/* парящие котики */
+.cat-float{
+  position:absolute;width:76px;height:76px;z-index:3;
+  color:var(--terracotta);cursor:grab;touch-action:none;
+  filter:drop-shadow(0 8px 16px rgba(0,0,0,.35));
+  animation:bob 6s ease-in-out infinite;
+  transition:filter .25s ease;
+}
+.cat-float svg{width:100%;height:100%;display:block;pointer-events:none}
+.cat-float:hover{filter:drop-shadow(0 10px 20px rgba(255,154,46,.7))}
+.cat-float.dragging{cursor:grabbing;animation:none;z-index:20}
+@keyframes bob{
+  0%,100%{transform:translateY(0) rotate(-4deg)}
+  50%{transform:translateY(-20px) rotate(4deg)}
+}
+.cat-1{left:5%;top:16%}
+.cat-2{right:7%;top:24%;width:58px;color:var(--amber);animation-delay:-2s}
+.cat-3{right:24%;bottom:10%;width:66px;color:#FFD8A8;animation-delay:-4s}
+
+/* ============ О НАС ============ */
+.section-about{background:var(--beige)}
+.about-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(1.8rem,4vw,3.5rem);align-items:center}
+.about-text p{color:var(--muted);margin:0 0 1rem}
+.about-text p:first-of-type{color:var(--ink);font-size:1.05rem}
+.about-media img{
+  width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:26px;
+  box-shadow:0 20px 44px rgba(139,74,43,.24);
+}
+.stats{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2rem}
+.stat{
+  flex:1 1 190px;padding:1.1rem 1.3rem;border-radius:var(--radius);
+  background:var(--cream-2);border:1px solid rgba(196,68,42,.2);box-shadow:var(--shadow);
+}
+.stat-num{display:block;font-size:clamp(1.55rem,3vw,2.05rem);font-weight:800;color:var(--terracotta);line-height:1.1}
+.stat-label{font-size:.9rem;color:var(--muted)}
+
+/* ============ КАТАЛОГ ============ */
+.books-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;margin-top:2.5rem}
+.book-card{
+  position:relative;perspective:1400px;
+  transition:transform .35s ease;
+}
+.book-inner{
+  position:relative;width:100%;height:100%;
+  transform-style:preserve-3d;
+  transition:transform .75s cubic-bezier(.22,.68,.32,1);
+}
+.book-front,.book-back{
+  border-radius:var(--radius);overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  box-shadow:0 6px 20px rgba(139,74,43,.12);
+  border:1px solid rgba(139,74,43,.14);
+}
+.book-front{display:flex;flex-direction:column;height:100%;background:var(--cream-2)}
+.book-cover{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--sand)}
+.book-cover img{width:100%;height:100%;object-fit:cover;transition:transform .55s ease}
+.book-card:hover .book-cover img{transform:scale(1.06)}
+.paw-stamp{
+  position:absolute;right:.55rem;bottom:.55rem;width:44px;height:44px;
+  color:rgba(255,248,238,.92);opacity:.9;transform:rotate(-14deg);
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));
+}
+.book-info{display:flex;flex-direction:column;flex:1;gap:.3rem;padding:1rem 1.1rem 1.2rem}
+.book-info h3{margin:0;font-size:1.02rem}
+.book-author{margin:0;font-size:.85rem;color:var(--muted)}
+.book-bottom{margin-top:auto;padding-top:.75rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.price{font-weight:800;font-size:1.15rem;color:var(--terracotta);white-space:nowrap}
+.btn-buy{
+  padding:.5rem .95rem;font-size:.85rem;font-weight:700;border-radius:999px;cursor:pointer;
+  background:var(--terracotta);color:var(--cream);border:1px solid rgba(255,154,46,.5);
+  transition:background .25s,box-shadow .25s,transform .2s;
+}
+.btn-buy:hover,.btn-buy:focus-visible{
+  background:var(--terracotta-dark);transform:translateY(-2px);
+  box-shadow:0 0 18px rgba(255,154,46,.65),0 0 0 2px rgba(255,178,75,.8);
+}
+.book-back{
+  position:absolute;inset:0;transform:rotateY(180deg);
+  display:flex;flex-direction:column;gap:.6rem;padding:1.4rem;
+  background:linear-gradient(160deg,#FFF3E2,#F7E3CC);
+}
+.book-back h4{margin:0;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brown);opacity:.85}
+.book-back p{margin:0;font-size:.88rem;line-height:1.55;color:var(--ink);overflow:auto}
+.book-back .book-bottom{padding-top:.6rem}
+.book-toggle{display:none}
+
+/* ============ АКЦИИ ============ */
+.section-promo{background:var(--cream)}
+.promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem;margin:2rem 0 2.4rem}
+.promo-card{
+  padding:1.5rem;border-radius:var(--radius);background:var(--cream-2);
+  border:1px solid rgba(139,74,43,.14);box-shadow:var(--shadow);
+  transition:transform .3s ease,box-shadow .3s ease;
+}
+.promo-card:hover{transform:translateY(-5px);box-shadow:0 18px 38px rgba(139,74,43,.2)}
+.promo-icon{
+  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:.9rem;
+  background:linear-gradient(135deg,var(--amber),var(--neon));color:#4A2410;
+  box-shadow:0 0 0 1px rgba(255,178,75,.6);
+}
+.promo-card h3{margin:0 0 .35rem;font-size:1.08rem}
+.promo-card p{margin:0;font-size:.94rem;color:var(--muted)}
+
+.bonus{
+  display:grid;grid-template-columns:.9fr 1.2fr;gap:clamp(1.2rem,3vw,2.4rem);align-items:center;
+  padding:clamp(1.6rem,4vw,2.6rem);border-radius:28px;
+  background:linear-gradient(120deg,#3A2A22,#5C3826 70%,#7A4326);
+  color:var(--cream);box-shadow:0 20px 44px rgba(58,34,24,.3);
+}
+.bonus h3{margin:0 0 .5rem;font-size:clamp(1.25rem,2.4vw,1.6rem);color:#FFF9F1}
+.bonus-intro{margin:0;font-size:.95rem;color:rgba(255,248,238,.78)}
+.bonus-list{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
+.bonus-list li{display:flex;gap:.7rem;align-items:flex-start;font-size:.98rem;color:rgba(255,248,238,.92)}
+.bonus-list svg{flex:none;margin-top:.22rem;color:var(--amber)}
+
+/* ============ КОНТАКТЫ ============ */
+.section-contacts{background:var(--beige)}
+.contacts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;margin-top:2rem}
+.contact-card{
+  padding:1.6rem;border-radius:var(--radius);background:var(--cream-2);
+  border:1px solid rgba(139,74,43,.14);box-shadow:var(--shadow);
+}
+.contact-row{display:flex;gap:.85rem;align-items:flex-start;margin-bottom:1.05rem}
+.contact-row:last-of-type{margin-bottom:0}
+.contact-row svg{flex:none;margin-top:.2rem;color:var(--terracotta)}
+.contact-row strong{display:block;font-size:.98rem}
+.contact-row span{font-size:.92rem;color:var(--muted)}
+.contact-row a{border-bottom:1px solid rgba(196,68,42,.35);transition:color .2s,border-color .2s}
+.contact-row a:hover{color:var(--terracotta);border-color:var(--neon)}
+
+.socials{display:flex;gap:.7rem;margin-top:1.4rem}
+.socials a{
+  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  background:var(--beige);color:var(--brown);
+  transition:background .25s,color .25s,transform .25s,box-shadow .25s;
+}
+.socials a:hover,.socials a:focus-visible{
+  background:var(--terracotta);color:var(--cream);transform:translateY(-4px);
+  box-shadow:0 0 18px rgba(255,154,46,.55);
+}
+.map-stub{
+  position:relative;min-height:100%;border-radius:var(--radius);overflow:hidden;
+  display:grid;place-items:center;text-align:center;padding:2rem 1.5rem;gap:.35rem;
+  background:
+    repeating-linear-gradient(45deg,#EFE3D2 0 20px,#E7D5BC 20px 40px);
+  border:1px solid rgba(139,74,43,.18);box-shadow:var(--shadow);
+}
+.map-stub::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 40%,rgba(255,178,75,.35),transparent 62%);
+}
+.map-stub > *{position:relative;z-index:1}
+.map-stub svg{color:var(--terracotta);filter:drop-shadow(0 4px 10px rgba(139,74,43,.3))}
+.map-stub h3{margin:.4rem 0 0;font-size:1.15rem}
+.map-stub p{margin:0 0 1rem;font-size:.9rem;color:var(--muted)}
+
+/* ============ ФУТЕР ============ */
+.site-footer{background:#2E211A;color:rgba(255,248,238,.72);padding:2.4rem 0;font-size:.9rem}
+.footer-inner{display:flex;flex-wrap:wrap;gap:1.2rem;align-items:center;justify-content:space-between}
+.footer-links{display:flex;flex-wrap:wrap;gap:1.2rem}
+.footer-links a{transition:color .2s}
+.footer-links a:hover{color:var(--amber)}
+
+/* ============ АНИМАЦИЯ ПОЯВЛЕНИЯ ============ */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.reveal.visible{opacity:1;transform:none}
+
+/* ============ ПЕРЕВОРОТ КАРТОЧЕК (ДЕСКТОП) ============ */
+@media (min-width:821px) and (hover:hover){
+  .book-card:hover .book-inner,
+  .book-card:focus-within .book-inner{transform:rotateY(180deg)}
+  .book-card:hover{transform:translateY(-6px)}
+}
+
+/* ============ МОБИЛЬНЫЕ: БУРГЕР ============ */
+@media (max-width:820px){
+  .burger{display:flex}
+  .nav{
+    position:absolute;top:100%;left:0;right:0;overflow:hidden;max-height:0;
+    background:var(--cream);border-bottom:1px solid rgba(139,74,43,.16);
+    box-shadow:0 18px 30px rgba(139,74,43,.16);
+    transition:max-height .35s ease;
+  }
+  .nav.open{max-height:360px}
+  .nav ul{flex-direction:column;gap:0;padding:.4rem 1.25rem 1.1rem}
+  .nav li{border-bottom:1px solid rgba(139,74,43,.09)}
+  .nav li:last-child{border-bottom:0}
+  .nav a{display:block;padding:.85rem 0;font-size:1rem;color:var(--ink)}
+  .nav a::after{display:none}
+}
+
+/* ============ МОБИЛЬНЫЕ: АККОРДЕОН АННОТАЦИЙ ============ */
+@media (max-width:820px),(hover:none){
+  .book-inner{transform:none !important;transition:none}
+  .book-card:hover{transform:none}
+  .book-back{
+    position:static;inset:auto;transform:none;opacity:0;
+    max-height:0;padding:0 1.1rem;overflow:hidden;
+    border:0;box-shadow:none;background:linear-gradient(160deg,#FFF3E2,#F7E3CC);
+    border-radius:0 0 var(--radius) var(--radius);
+    transition:max-height .42s ease,opacity .3s ease,padding .35s ease;
+  }
+  .book-card.open .book-back{
+    max-height:640px;opacity:1;padding:1.15rem;
+    border:1px solid rgba(139,74,43,.14);border-top:0;
+  }
+  .book-toggle{
+    display:block;width:100%;margin-top:.7rem;padding:.7rem;
+    border-radius:14px;cursor:pointer;font-weight:700;color:var(--terracotta);
+    background:transparent;border:1px dashed rgba(196,68,42,.5);
+    transition:background .25s,color .25s;
+  }
+  .book-toggle:hover{background:rgba(196,68,42,.08)}
+}
+
+/* ============ АДАПТИВ ============ */
+@media (max-width:1100px){
+  .books-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+  .promo-grid{grid-template-columns:1fr}
+  .bonus{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .about-grid{grid-template-columns:1fr}
+  .about-media{order:-1}
+  .about-media img{aspect-ratio:16/10}
+  .contacts-grid{grid-template-columns:1fr}
+  .map-stub{min-height:240px}
+}
+@media (max-width:700px){
+  .cat-3{display:none}
+  .cat-2{width:50px;right:5%;top:12%}
+  .cat-1{width:60px;left:4%;top:10%}
+  .hero{min-height:auto;padding:5.5rem 0 4rem}
+}
+@media (max-width:560px){
+  .books-grid{grid-template-columns:1fr}
+  .hero-actions .btn{flex:1 1 100%}
+}
+
+/* ============ ДОСТУПНОСТЬ ============ */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  .cat-float{animation:none}
+  .book-inner{transition:none}
+  .to-top{transition:none}
+}
+
+/* ============ ТЁМНАЯ ТЕМА ============ */
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --cream:#2A211B;
+    --cream-2:#33281F;
+    --beige:#2E241D;
+    --sand:#3A2E24;
+    --terracotta:#E0704A;
+    --terracotta-dark:#C85A38;
+    --amber:#FFC266;
+    --neon:#FFB347;
+    --brown:#C89B7A;
+    --ink:#F5EDE3;
+    --muted:#B8A898;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --paw-url:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='%23FFB24B' fill-opacity='0.08'%3E%3Cellipse cx='70' cy='94' rx='24' ry='19'/%3E%3Ccircle cx='42' cy='64' r='11'/%3E%3Ccircle cx='64' cy='50' r='11'/%3E%3Ccircle cx='88' cy='53' r='11'/%3E%3Ccircle cx='106' cy='74' r='9'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .site-header{background:rgba(42,33,27,.9);border-bottom:1px solid rgba(200,155,122,.16)}
+  .burger{border-color:rgba(200,155,122,.3)}
+  .book-back{background:linear-gradient(160deg,#3A2E24,#2E241D)}
+  .map-stub{background:repeating-linear-gradient(45deg,#3A2E24 0 20px,#33281F 20px 40px)}
+  .nav{background:var(--cream);border-bottom:1px solid rgba(200,155,122,.16)}
+  .hero{background:#241C17}
+  .hero-overlay{background:linear-gradient(105deg,rgba(20,14,10,.9) 0%,rgba(20,14,10,.7) 45%,rgba(224,112,74,.35) 100%)}
+}
+
+/* ============ КНОПКА «НАВЕРХ» ============ */
+.to-top{
+  position:fixed;right:1.4rem;bottom:1.4rem;z-index:200;
+  width:52px;height:52px;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;padding:0;
+  background:linear-gradient(135deg,var(--amber),var(--neon));
+  color:#4A2410;border:2px solid rgba(255,178,75,.65);
+  box-shadow:0 10px 26px rgba(255,154,46,.4);
+  opacity:0;visibility:hidden;transform:translateY(16px);
+  transition:opacity .3s ease,transform .3s ease,visibility .3s,box-shadow .3s ease;
+}
+.to-top.visible{opacity:1;visibility:visible;transform:none}
+.to-top:hover,.to-top:focus-visible{
+  transform:translateY(-3px);
+  box-shadow:0 16px 34px rgba(255,154,46,.55);
+}
+.to-top svg{width:22px;height:22px}
+
+/* ============ ЯЗЫКОВОЙ ПЕРЕКЛЮЧАТЕЛЬ ============ */
+.header-tools{display:flex;align-items:center;gap:.55rem}
+.lang-switch{display:inline-flex;gap:.2rem}
+.lang-btn{border:1px solid rgba(139,74,43,.25);background:transparent;color:var(--muted);border-radius:999px;padding:.28rem .58rem;font-size:.78rem;font-weight:800;cursor:pointer;transition:background .25s,color .25s,border-color .25s}
+.lang-btn:hover,.lang-btn:focus-visible{color:var(--terracotta);border-color:var(--terracotta)}
+.lang-btn.active{background:var(--terracotta);color:var(--cream);border-color:var(--terracotta)}
+
+/* ============ КОРЗИНА ============ */
+.cart-btn{display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;border:1px solid rgba(139,74,43,.25);background:var(--cream-2);color:var(--brown);border-radius:999px;padding:.42rem .8rem;font-weight:700;font-size:.86rem;transition:background .25s,color .25s,transform .2s,box-shadow .25s}
+.cart-btn:hover,.cart-btn:focus-visible{color:var(--terracotta);background:var(--beige);transform:translateY(-2px)}
+.cart-btn svg{width:18px;height:18px}
+.cart-count{display:inline-grid;place-items:center;min-width:1.3rem;height:1.3rem;padding:0 .28rem;border-radius:999px;background:var(--terracotta);color:var(--cream);font-size:.72rem;font-weight:800}
+.cart-count[hidden]{display:none}
+.cart-backdrop{position:fixed;inset:0;z-index:299;background:rgba(45,28,18,.45);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.cart-backdrop.open{opacity:1;visibility:visible}
+.cart-panel{position:fixed;top:0;right:0;bottom:0;z-index:300;width:min(400px,100%);background:var(--cream);box-shadow:-24px 0 60px rgba(58,34,18,.3);border-left:1px solid rgba(139,74,43,.14);transform:translateX(105%);transition:transform .38s cubic-bezier(.22,.68,.32,1);visibility:hidden;display:flex;flex-direction:column}
+.cart-panel.open{transform:none;visibility:visible}
+.cart-panel-head{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.2rem;border-bottom:1px solid rgba(139,74,43,.14)}
+.cart-panel-head h3{margin:0;font-size:1.15rem}
+.cart-close{width:38px;height:38px;border-radius:12px;border:1px solid rgba(139,74,43,.25);background:transparent;color:var(--brown);cursor:pointer;font-size:1.3rem;line-height:1}
+.cart-close:hover,.cart-close:focus-visible{background:var(--beige);color:var(--terracotta)}
+.cart-items{flex:1;overflow:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.85rem}
+.cart-item{display:flex;gap:.8rem;align-items:center;padding:.85rem;border-radius:16px;background:var(--cream-2);border:1px solid rgba(139,74,43,.12)}
+.cart-item-cover{width:48px;height:60px;object-fit:cover;border-radius:8px;flex:none;background:var(--sand)}
+.cart-item-info{flex:1;min-width:0}
+.cart-item-info strong{display:block;font-size:.92rem;line-height:1.3}
+.cart-item-info span{font-size:.82rem;color:var(--muted)}
+.cart-item-price{font-weight:800;color:var(--terracotta);white-space:nowrap}
+.cart-item-del{width:30px;height:30px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;font-size:1.1rem}
+.cart-item-del:hover,.cart-item-del:focus-visible{color:var(--terracotta);background:rgba(196,68,42,.08)}
+.cart-empty{text-align:center;color:var(--muted);padding:2rem 1rem;font-size:.95rem}
+.cart-panel-foot{border-top:1px solid rgba(139,74,43,.14);padding:1.1rem 1.2rem}
+.cart-total-row{display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem;margin-bottom:.8rem}
+.cart-clear{width:100%;padding:.75rem;border-radius:14px;border:1px dashed rgba(196,68,42,.4);background:transparent;color:var(--terracotta);font-weight:700;cursor:pointer;transition:background .25s}
+.cart-clear:hover,.cart-clear:focus-visible{background:rgba(196,68,42,.07)}
+.sr-live{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ============ ОТЗЫВЫ ============ */
+.section-reviews{background:var(--cream-2)}
+.reviews-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.3rem;margin-top:2.2rem}
+.review-card{padding:1.5rem;border-radius:var(--radius);background:var(--cream);border:1px solid rgba(139,74,43,.12);box-shadow:var(--shadow);transition:transform .3s ease,box-shadow .3s ease}
+.review-card:hover{transform:translateY(-5px);box-shadow:0 18px 38px rgba(139,74,43,.18)}
+.review-stars{display:flex;gap:.1rem;color:var(--amber);margin-bottom:.7rem;font-size:1.05rem;letter-spacing:.08em}
+.review-card p{margin:0 0 .9rem;font-size:.94rem;line-height:1.6;color:var(--muted)}
+.review-author{display:flex;align-items:center;gap:.6rem}
+.review-avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--beige);color:var(--terracotta);font-weight:800}
+.review-author strong{display:block;font-size:.92rem}
+.review-author span{font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- Пропуск навигации для клавиатурных пользователей -->
+<a class="skip-link" href="#top">Перейти к содержимому</a>
+
+<!-- Спрайт с иконкой котика -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="icon-cat" viewBox="0 0 100 100">
+    <path d="M28 37 L22 8 L49 22 Z" fill="currentColor"/>
+    <path d="M72 37 L78 8 L51 22 Z" fill="currentColor"/>
+    <ellipse cx="50" cy="55" rx="28" ry="25" fill="currentColor"/>
+    <ellipse cx="40" cy="50" rx="3.6" ry="4.6" fill="#FFF8EE"/>
+    <ellipse cx="60" cy="50" rx="3.6" ry="4.6" fill="#FFF8EE"/>
+    <path d="M47 61 h6 l-3 3.4 Z" fill="#FF9A2E"/>
+    <path d="M50 64.4 q0 4 -3.6 5 M50 64.4 q0 4 3.6 5" stroke="#FFF8EE" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<!-- ================= HEADER ================= -->
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="#top" class="logo" aria-label="МурКниги — на главную">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#icon-cat"/></svg>
+      Мур<span>Книги</span>
+    </a>
+
+    <button class="burger" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="nav">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav" id="nav" aria-label="Основная навигация">
+      <ul>
+        <li><a href="#about">О нас</a></li>
+        <li><a href="#catalog">Каталог</a></li>
+        <li><a href="#promo">Акции</a></li>
+        <li><a href="#bonus">Бонусы</a></li>
+        <li><a href="#contacts">Контакты</a></li>
+        <li><a href="#reviews">Отзывы</a></li>
+      </ul>
+    </nav>
+
+    <div class="header-tools">
+      <div class="lang-switch" role="group" aria-label="Язык сайта">
+        <button class="lang-btn active" type="button" data-lang="ru" aria-pressed="true">RU</button>
+        <button class="lang-btn" type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <button class="cart-btn" type="button" aria-label="Корзина" aria-haspopup="dialog" aria-controls="cart-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+        <span class="cart-count" hidden>0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= HERO ================= -->
+  <section class="hero" aria-labelledby="hero-title">
+    <img class="hero-bg"
+         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%233A2A22'/%3E%3Cstop offset='1' stop-color='%238B4A2B'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3Cg fill='%23FFD8A8' fill-opacity='.14'%3E%3Cellipse cx='18' cy='72' rx='8' ry='6'/%3E%3Cellipse cx='72' cy='24' rx='8' ry='6'/%3E%3Cellipse cx='86' cy='80' rx='8' ry='6'/%3E%3C/g%3E%3Cg fill='%232A1A12' fill-opacity='.5'%3E%3Cpath d='M62 44 59 30l13 7zM78 44 81 30 68 37z'/%3E%3Cellipse cx='70' cy='50' rx='12' ry='10'/%3E%3C/g%3E%3C/svg%3E"
+         alt="Уютная атмосфера книжного магазина с котиком"
+         fetchpriority="high" decoding="async">
+    <div class="hero-overlay" aria-hidden="true"></div>
+
+    <div class="container hero-content">
+      <p class="hero-badge">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#icon-cat"/></svg>
+        уютный книжный магазин
+      </p>
+      <h1 id="hero-title">Книги, в которых мурчит уют. Подарите себе пушистое настроение!</h1>
+      <p class="hero-sub">Магазин добрых историй для тех, кто любит котиков и хорошие книги.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#catalog">Выбрать книги</a>
+        <a class="btn btn-ghost" href="#promo">Акции и бонусы</a>
+      </div>
+    </div>
+
+    <!-- Перетаскиваемые котики -->
+    <div class="cat-float cat-1" title="Меня можно перетащить" role="img" aria-label="Парящий котик, которого можно перетащить">
+      <svg aria-hidden="true"><use href="#icon-cat"/></svg>
+    </div>
+    <div class="cat-float cat-2" title="Меня можно перетащить" role="img" aria-label="Парящий котик, которого можно перетащить">
+      <svg aria-hidden="true"><use href="#icon-cat"/></svg>
+    </div>
+    <div class="cat-float cat-3" title="Меня можно перетащить" role="img" aria-label="Парящий котик, которого можно перетащить">
+      <svg aria-hidden="true"><use href="#icon-cat"/></svg>
+    </div>
+  </section>
+
+  <!-- ================= О НАС ================= -->
+  <section class="section section-about paws" id="about" aria-labelledby="about-title">
+    <div class="container about-grid">
+      <div class="about-text reveal">
+        <h2 id="about-title">О нас</h2>
+        <p>«МурКниги» начались с простой привычки: читать, устроившись так, чтобы рядом обязательно кто-то мурчал. Мы долго выбирали, какие истории достойны стоять на полке рядом с любимым пледом, — и постепенно из этого вырос магазин.</p>
+        <p>Мы относимся к книгам как к котам: хорошая книга должна быть тёплой, чуть своенравной и обязательно «своей». Поэтому в подборке нет случайных томов — только те, к которым хочется возвращаться и которые приятно держать в руках.</p>
+        <p>Нам важно, чтобы вам было удобно. Понятные разделы, честные описания, быстрый поиск и доставка, которая не заставляет ждать дольше нужного. А если сомневаетесь в выборе — подскажем так, как подсказывают другу, а не как продавец.</p>
+        <p>Мы верим, что уют складывается из мелочей: из шелеста страниц, запаха бумаги, тёплого света и мягкого «мур» под боком. Пусть в вашем доме будет и то, и другое.</p>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-num">500+</span>
+            <span class="stat-label">книг в бережной подборке</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">2–3 дня</span>
+            <span class="stat-label">доставка по России</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-media reveal">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FFF3E2'/%3E%3Cstop offset='1' stop-color='%23E8D6BE'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3Cg fill='%23C4442A' fill-opacity='.35'%3E%3Crect x='12' y='20' width='8' height='18' rx='1'/%3E%3Crect x='22' y='14' width='6' height='24' rx='1'/%3E%3Crect x='30' y='22' width='9' height='16' rx='1'/%3E%3C/g%3E%3Cg fill='%233A2A22' fill-opacity='.7'%3E%3Cpath d='M40 70l-3-12 10 6zM60 70l3-12-10 6z'/%3E%3Cellipse cx='50' cy='76' rx='14' ry='12'/%3E%3C/g%3E%3C/svg%3E"
+             alt="Кот в уютной атмосфере книжного магазина" loading="lazy" decoding="async">
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= КАТАЛОГ ================= -->
+  <section class="section section-catalog" id="catalog" aria-labelledby="catalog-title">
+    <div class="container">
+      <div class="reveal">
+        <h2 id="catalog-title">Популярные книги</h2>
+        <p class="section-lead">Четыре истории, которые выбирают чаще всего. Наведите курсор, чтобы прочитать аннотацию — или нажмите на кнопку на мобильном.</p>
+      </div>
+
+      <div class="books-grid reveal">
+
+        <!-- Карточка 1 -->
+        <article class="book-card">
+          <div class="book-inner">
+            <div class="book-front">
+              <div class="book-cover">
+                <img src="https://raw.githubusercontent.com/dally11001/VS-code/main/098765.webp"
+                     alt="Обложка книги «Хроники странствующего кота»: кот крупным планом"
+                     loading="lazy" decoding="async" width="400" height="500">
+                <svg class="paw-stamp" viewBox="0 0 100 100" aria-hidden="true">
+                  <g fill="currentColor">
+                    <ellipse cx="50" cy="68" rx="22" ry="18"/>
+                    <circle cx="24" cy="44" r="10"/>
+                    <circle cx="44" cy="31" r="10"/>
+                    <circle cx="68" cy="33" r="10"/>
+                    <circle cx="86" cy="52" r="8.5"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="book-info">
+                <h3>Хроники странствующего кота</h3>
+                <p class="book-author">Хиро Арикава</p>
+                <div class="book-bottom">
+                  <span class="price">690 ₽</span>
+                  <button class="btn-buy" type="button">В корзину</button>
+                </div>
+              </div>
+            </div>
+            <div class="book-back">
+              <h4>Аннотация</h4>
+              <p>Трогательное путешествие человека и кота Наны: через дороги и случайные встречи постепенно раскрываются тёплые воспоминания, старые обиды и самые важные чувства. История о том, что дом — это не место, а тот, кто идёт рядом.</p>
+              <div class="book-bottom">
+                <span class="price">690 ₽</span>
+                <button class="btn-buy" type="button">В корзину</button>
+              </div>
+            </div>
+          </div>
+          <button class="book-toggle" type="button" aria-expanded="false">Аннотация</button>
+        </article>
+
+        <!-- Карточка 2 -->
+        <article class="book-card">
+          <div class="book-inner">
+            <div class="book-front">
+              <div class="book-cover">
+                <img src="https://raw.githubusercontent.com/dally11001/VS-code/main/9876.webp"
+                     alt="Обложка книги «Если все кошки в мире исчезнут»: котёнок крупным планом"
+                     loading="lazy" decoding="async" width="400" height="500">
+                <svg class="paw-stamp" viewBox="0 0 100 100" aria-hidden="true">
+                  <g fill="currentColor">
+                    <ellipse cx="50" cy="68" rx="22" ry="18"/>
+                    <circle cx="24" cy="44" r="10"/>
+                    <circle cx="44" cy="31" r="10"/>
+                    <circle cx="68" cy="33" r="10"/>
+                    <circle cx="86" cy="52" r="8.5"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="book-info">
+                <h3>Если все кошки в мире исчезнут</h3>
+                <p class="book-author">Гэнки Кавамура</p>
+                <div class="book-bottom">
+                  <span class="price">620 ₽</span>
+                  <button class="btn-buy" type="button">В корзину</button>
+                </div>
+              </div>
+            </div>
+            <div class="book-back">
+              <h4>Аннотация</h4>
+              <p>Умирающий почтальон заключает сделку: за каждый лишний день из мира исчезает одна вещь. Телефон, кино, часы… Когда очередь доходит до кошек, герой заново осмысляет, что делает его жизнь настоящей.</p>
+              <div class="book-bottom">
+                <span class="price">620 ₽</span>
+                <button class="btn-buy" type="button">В корзину</button>
+              </div>
+            </div>
+          </div>
+          <button class="book-toggle" type="button" aria-expanded="false">Аннотация</button>
+        </article>
+
+        <!-- Карточка 3 -->
+        <article class="book-card">
+          <div class="book-inner">
+            <div class="book-front">
+              <div class="book-cover">
+                <img src="https://raw.githubusercontent.com/dally11001/VS-code/main/3456.jpg"
+                     alt="Обложка книги «Дверь в лето»: кот крупным планом"
+                     loading="lazy" decoding="async" width="400" height="500">
+                <svg class="paw-stamp" viewBox="0 0 100 100" aria-hidden="true">
+                  <g fill="currentColor">
+                    <ellipse cx="50" cy="68" rx="22" ry="18"/>
+                    <circle cx="24" cy="44" r="10"/>
+                    <circle cx="44" cy="31" r="10"/>
+                    <circle cx="68" cy="33" r="10"/>
+                    <circle cx="86" cy="52" r="8.5"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="book-info">
+                <h3>Дверь в лето</h3>
+                <p class="book-author">Роберт Хайнлайн</p>
+                <div class="book-bottom">
+                  <span class="price">540 ₽</span>
+                  <button class="btn-buy" type="button">В корзину</button>
+                </div>
+              </div>
+            </div>
+            <div class="book-back">
+              <h4>Аннотация</h4>
+              <p>Инженер Дэн, его кот Пит и прыжки во времени. Пока вокруг меняются эпохи и рушатся планы, кот остаётся опорой и символом дома — тем самым тёплым ориентиром среди сложных решений.</p>
+              <div class="book-bottom">
+                <span class="price">540 ₽</span>
+                <button class="btn-buy" type="button">В корзину</button>
+              </div>
+            </div>
+          </div>
+          <button class="book-toggle" type="button" aria-expanded="false">Аннотация</button>
+        </article>
+
+        <!-- Карточка 4 -->
+        <article class="book-card">
+          <div class="book-inner">
+            <div class="book-front">
+              <div class="book-cover">
+                <img src="https://raw.githubusercontent.com/dally11001/VS-code/main/676.jpg"
+                     alt="Обложка книги «Она и её кот»: кот крупным планом"
+                     loading="lazy" decoding="async" width="400" height="500">
+                <svg class="paw-stamp" viewBox="0 0 100 100" aria-hidden="true">
+                  <g fill="currentColor">
+                    <ellipse cx="50" cy="68" rx="22" ry="18"/>
+                    <circle cx="24" cy="44" r="10"/>
+                    <circle cx="44" cy="31" r="10"/>
+                    <circle cx="68" cy="33" r="10"/>
+                    <circle cx="86" cy="52" r="8.5"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="book-info">
+                <h3>Она и её кот</h3>
+                <p class="book-author">Макото Синкай, Наруки Нагакава</p>
+                <div class="book-bottom">
+                  <span class="price">590 ₽</span>
+                  <button class="btn-buy" type="button">В корзину</button>
+                </div>
+              </div>
+            </div>
+            <div class="book-back">
+              <h4>Аннотация</h4>
+              <p>Нежная история о девушке и её коте: две точки зрения на одни и те же будни. Тихое присутствие питомца помогает справляться с одиночеством и заново замечать простые радости.</p>
+              <div class="book-bottom">
+                <span class="price">590 ₽</span>
+                <button class="btn-buy" type="button">В корзину</button>
+              </div>
+            </div>
+          </div>
+          <button class="book-toggle" type="button" aria-expanded="false">Аннотация</button>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ОТЗЫВЫ ================= -->
+  <section class="section section-reviews paws" id="reviews" aria-labelledby="reviews-title">
+    <div class="container">
+      <div class="reveal">
+        <h2 id="reviews-title">Отзывы покупателей</h2>
+        <p class="section-lead">Что говорят те, кто уже нашёл свою книгу.</p>
+      </div>
+      <div class="reviews-grid reveal">
+        <article class="review-card">
+          <div class="review-stars" aria-label="5 из 5">★★★★★</div>
+          <p>«Хроники странствующего кота» пришли быстро и упакованы очень бережно. Читала с котом на коленях — идеальное попадание.</p>
+          <div class="review-author"><span class="review-avatar">А</span><div><strong>Анна</strong><span>Санкт-Петербург</span></div></div>
+        </article>
+        <article class="review-card">
+          <div class="review-stars" aria-label="5 из 5">★★★★★</div>
+          <p>Заказывал «Дверь в лето» в подарок. Помогли с выбором, как другу, а не как продавец. Теперь покупаю только здесь.</p>
+          <div class="review-author"><span class="review-avatar">М</span><div><strong>Михаил</strong><span>Москва</span></div></div>
+        </article>
+        <article class="review-card">
+          <div class="review-stars" aria-label="4 из 5">★★★★☆</div>
+          <p>Очень уютный магазин и понятный сайт. «Она и её кот» — нежная история, читается на одном дыхании. Спасибо за подборку!</p>
+          <div class="review-author"><span class="review-avatar">Е</span><div><strong>Елена</strong><span>Казань</span></div></div>
+        </article>
+        <article class="review-card">
+          <div class="review-stars" aria-label="5 из 5">★★★★★</div>
+          <p>Бонусная программа реально работает: накопленные баллы закрыли часть следующего заказа. И доставка не подвела.</p>
+          <div class="review-author"><span class="review-avatar">Д</span><div><strong>Дмитрий</strong><span>Екатеринбург</span></div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= АКЦИИ И БОНУСЫ ================= -->
+  <section class="section section-promo paws" id="promo" aria-labelledby="promo-title">
+    <div class="container">
+      <div class="reveal">
+        <h2 id="promo-title">Акции и бонусная программа</h2>
+        <p class="section-lead">Небольшие приятности, которые делают покупку ещё уютнее.</p>
+      </div>
+
+      <div class="promo-grid reveal">
+        <article class="promo-card">
+          <div class="promo-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V5a2 2 0 0 1 2-2h7a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8Z"/>
+              <circle cx="7.5" cy="7.5" r="1.4"/>
+            </svg>
+          </div>
+          <h3>Скидка 15% на первый заказ</h3>
+          <p>Для новых гостей магазина — на любую книгу из подборки. Промокод применится автоматически при оформлении.</p>
+        </article>
+
+        <article class="promo-card">
+          <div class="promo-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 7.5h11v9h-11z"/>
+              <path d="M13.5 10.5h4l3.5 3.5v2.5h-7.5z"/>
+              <circle cx="6.5" cy="18.5" r="1.8"/>
+              <circle cx="17" cy="18.5" r="1.8"/>
+            </svg>
+          </div>
+          <h3>Бесплатная доставка от 3000 ₽</h3>
+          <p>Соберите небольшую стопку книг — и доставим её по городу бесплатно, аккуратно упакованной.</p>
+        </article>
+
+        <article class="promo-card">
+          <div class="promo-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="8" width="18" height="13" rx="2"/>
+              <path d="M3 12.5h18M12 8v13"/>
+              <path d="M12 8S10.2 3 7.6 3a2.5 2.5 0 0 0 0 5M12 8s1.8-5 4.4-5a2.5 2.5 0 0 1 0 5"/>
+            </svg>
+          </div>
+          <h3>Подарочная упаковка — в подарок</h3>
+          <p>Крафт-бумага, лента и открытка с лапкой. Отметьте галочку «Это подарок» в корзине.</p>
+        </article>
+      </div>
+
+      <div class="bonus reveal" id="bonus">
+        <div>
+          <h3>Бонусная программа «Мурр-баллы»</h3>
+          <p class="bonus-intro">Копите баллы с каждой покупки и оплачивайте ими до 30% следующего заказа.</p>
+        </div>
+        <ul class="bonus-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Начисляем <strong>10% от суммы заказа</strong> — баллы приходят сразу после оплаты.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Простое соотношение: <strong>1 балл = 1 ₽</strong>.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span><strong>Баллы не сгорают</strong> — пользуйтесь ими тогда, когда удобно вам.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Оплачивать баллами можно <strong>до 30% стоимости</strong> заказа.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= КОНТАКТЫ ================= -->
+  <section class="section section-contacts paws" id="contacts" aria-labelledby="contacts-title">
+    <div class="container">
+      <div class="reveal">
+        <h2 id="contacts-title">Контакты и график</h2>
+        <p class="section-lead">Заходите в гости, пишите или звоните — мы всегда рады.</p>
+      </div>
+
+      <div class="contacts-grid reveal">
+        <div class="contact-card">
+          <div class="contact-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <div>
+              <strong>Адрес</strong>
+              <span>Санкт-Петербург, ул. Примерная, д. 1</span>
+            </div>
+          </div>
+
+          <div class="contact-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+            </svg>
+            <div>
+              <strong>Часы работы</strong>
+              <span>пн–пт 10:00–20:00<br>сб–вс 11:00–19:00</span>
+            </div>
+          </div>
+
+          <div class="contact-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/>
+            </svg>
+            <div>
+              <strong>Телефон</strong>
+              <span><a href="tel:+78121234567">+7 (812) 123-45-67</a></span>
+            </div>
+          </div>
+
+          <div class="contact-row">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>
+            </svg>
+            <div>
+              <strong>Email</strong>
+              <span><a href="mailto:hello@murknigi.ru">hello@murknigi.ru</a></span>
+            </div>
+          </div>
+
+          <div class="socials">
+            <a href="#" aria-label="МурКниги во ВКонтакте">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M13 17.6c-5.7 0-9-3.9-9.1-10.4h2.9c.1 4.7 2.2 6.7 3.9 7.1V7.2h2.7v4.1c1.7-.2 3.4-2 4-4.1h2.7c-.5 2.5-2.3 4.3-3.5 5.1 1.2.6 3.3 2.2 4.1 5.3h-3c-.6-1.7-2.1-3.1-4.3-3.4v3.4H13z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="МурКниги в Telegram">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M21.6 4.3 2.9 11.4c-.9.4-.9 1.6.1 1.9l4.3 1.4 1.7 5.2c.3.9 1.3 1.1 1.9.4l2.3-2.3 4.4 3.3c.7.5 1.7.1 1.9-.7l3.1-14.1c.2-1.1-.8-1.9-2-1.5ZM9.4 14.6l-.3 3.3-1.1-3.4 10-6.4-8.6 6.5Z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="МурКниги в WhatsApp">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.1 14.1c-.2.6-1.2 1.2-1.7 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.3.3c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.5.2.6.3.7.5.1.2.1.7-.1 1.3Z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="map-stub">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          <h3>Схема проезда</h3>
+          <p>5 минут от метро, вход со стороны двора</p>
+          <a class="btn btn-primary"
+             href="https://yandex.ru/maps/?text=%D0%A1%D0%B0%D0%BD%D0%BA%D1%82-%D0%9F%D0%B5%D1%82%D0%B5%D1%80%D0%B1%D1%83%D1%80%D0%B3%2C%20%D1%83%D0%BB.%20%D0%9F%D1%80%D0%B8%D0%BC%D0%B5%D1%80%D0%BD%D0%B0%D1%8F%2C%20%D0%B4.%201"
+             target="_blank" rel="noopener">Открыть карту</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p style="margin:0">© 2026 МурКниги. Все права защищены.</p>
+    <nav class="footer-links" aria-label="Ссылки в подвале">
+      <a href="#about">О магазине</a>
+      <a href="#">Доставка и оплата</a>
+      <a href="#">Возврат</a>
+      <a href="#">Политика конфиденциальности</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+/* ---------- 1. Бургер-меню (мобильные) ---------- */
+(function () {
+  var burger = document.querySelector('.burger');
+  var nav = document.getElementById('nav');
+  if (!burger || !nav) return;
+
+  burger.addEventListener('click', function () {
+    var open = nav.classList.toggle('open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    burger.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+  });
+
+  nav.addEventListener('click', function (e) {
+    if (e.target.closest('a')) {
+      nav.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+      burger.setAttribute('aria-label', 'Открыть меню');
+    }
+  });
+})();
+
+/* ---------- 2. Аккордеон аннотаций (мобильные) ---------- */
+document.querySelectorAll('.book-toggle').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var card = btn.closest('.book-card');
+    var open = card.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.textContent = open ? 'Свернуть' : 'Аннотация';
+  });
+});
+
+/* ---------- 3. Fade-in секций при скролле ---------- */
+(function () {
+  var items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    items.forEach(function (el) { el.classList.add('visible'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  items.forEach(function (el) { io.observe(el); });
+})();
+
+/* ---------- 4. Перетаскиваемые котики ---------- */
+(function () {
+  var hero = document.querySelector('.hero');
+  if (!hero) return;
+
+  document.querySelectorAll('.cat-float').forEach(function (cat) {
+    var dragging = false, offsetX = 0, offsetY = 0;
+
+    cat.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      cat.classList.add('dragging');
+      if (cat.setPointerCapture) cat.setPointerCapture(e.pointerId);
+      var r = cat.getBoundingClientRect();
+      offsetX = e.clientX - r.left;
+      offsetY = e.clientY - r.top;
+      e.preventDefault();
+    });
+
+    cat.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var hr = hero.getBoundingClientRect();
+      var x = e.clientX - hr.left - offsetX;
+      var y = e.clientY - hr.top - offsetY;
+
+      x = Math.max(0, Math.min(x, hr.width - cat.offsetWidth));
+      y = Math.max(0, Math.min(y, hr.height - cat.offsetHeight));
+
+      cat.style.left = x + 'px';
+      cat.style.top = y + 'px';
+      cat.style.right = 'auto';
+      cat.style.bottom = 'auto';
+    });
+
+    function stop() {
+      dragging = false;
+      cat.classList.remove('dragging');
+    }
+    cat.addEventListener('pointerup', stop);
+    cat.addEventListener('pointercancel', stop);
+    cat.addEventListener('lostpointercapture', stop);
+  });
+})();
+
+/* ---------- 5. Рабочая корзина ---------- */
+var currentLang = localStorage.getItem('murknigi-lang') || 'ru';
+(function () {
+  var KEY = 'murknigi-cart-v1';
+  var cart = [];
+  try { cart = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { cart = []; }
+
+  var badge = document.querySelector('.cart-count');
+  var panel = document.getElementById('cart-panel');
+  var backdrop = document.querySelector('.cart-backdrop');
+  var itemsEl = document.getElementById('cart-items');
+  var totalEl = document.getElementById('cart-total');
+  var live = document.getElementById('cart-live');
+  var openBtn = document.querySelector('.cart-btn');
+  var closeBtn = document.querySelector('.cart-close');
+  var clearBtn = document.querySelector('.cart-clear');
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (e) {} }
+  function count() { return cart.reduce(function (s, i) { return s + i.qty; }, 0); }
+  function total() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
+  function fmt(n) { return n.toLocaleString('ru-RU') + ' ₽'; }
+  function t(ru, en) { return currentLang === 'en' ? en : ru; }
+  function announce(msg) { if (!live) return; live.textContent = ''; setTimeout(function () { live.textContent = msg; }, 40); }
+
+  function render() {
+    if (itemsEl) {
+      itemsEl.innerHTML = '';
+      if (!cart.length) {
+        var p = document.createElement('p');
+        p.className = 'cart-empty';
+        p.textContent = t('Корзина пуста', 'Your cart is empty');
+        itemsEl.appendChild(p);
+      } else {
+        cart.forEach(function (item, idx) {
+          var row = document.createElement('div'); row.className = 'cart-item';
+          var img = document.createElement('img'); img.className = 'cart-item-cover'; img.src = item.cover; img.alt = '';
+          var info = document.createElement('div'); info.className = 'cart-item-info';
+          var strong = document.createElement('strong'); strong.textContent = item.title;
+          var qty = document.createElement('span'); qty.textContent = '× ' + item.qty;
+          info.appendChild(strong); info.appendChild(qty);
+          var price = document.createElement('span'); price.className = 'cart-item-price'; price.textContent = fmt(item.price * item.qty);
+          var del = document.createElement('button'); del.type = 'button'; del.className = 'cart-item-del'; del.setAttribute('aria-label', t('Удалить', 'Remove')); del.textContent = '×';
+          del.addEventListener('click', function () { cart.splice(idx, 1); save(); render(); announce(t('Удалено из корзины', 'Removed from cart')); });
+          row.appendChild(img); row.appendChild(info); row.appendChild(price); row.appendChild(del);
+          itemsEl.appendChild(row);
+        });
+      }
+    }
+    if (totalEl) totalEl.textContent = fmt(total());
+    if (badge) { badge.textContent = count(); badge.hidden = count() === 0; }
+  }
+
+  function openCart() {
+    if (!panel) return;
+    panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
+    if (backdrop) { backdrop.hidden = false; requestAnimationFrame(function () { backdrop.classList.add('open'); }); }
+    if (closeBtn) closeBtn.focus();
+  }
+  function closeCart() {
+    if (!panel) return;
+    panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
+    if (backdrop) { backdrop.classList.remove('open'); setTimeout(function () { backdrop.hidden = true; }, 300); }
+    if (openBtn) openBtn.focus();
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openCart);
+  if (closeBtn) closeBtn.addEventListener('click', closeCart);
+  if (backdrop) backdrop.addEventListener('click', closeCart);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel && panel.classList.contains('open')) closeCart(); });
+  if (clearBtn) clearBtn.addEventListener('click', function () { cart = []; save(); render(); announce(t('Корзина очищена', 'Cart cleared')); });
+
+  document.querySelectorAll('.btn-buy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var card = btn.closest('.book-card'); if (!card) return;
+      var titleEl = card.querySelector('.book-info h3');
+      var priceEl = card.querySelector('.book-info .price');
+      var coverEl = card.querySelector('.book-cover img');
+      var title = titleEl ? titleEl.textContent.trim() : t('Книга', 'Book');
+      var price = priceEl ? (parseInt(priceEl.textContent.replace(/[^0-9]/g, ''), 10) || 0) : 0;
+      var cover = coverEl ? coverEl.getAttribute('src') : '';
+      var found = null;
+      for (var i = 0; i < cart.length; i++) { if (cart[i].title === title) { found = cart[i]; break; } }
+      if (found) { found.qty += 1; } else { cart.push({ title: title, price: price, cover: cover, qty: 1 }); }
+      save(); render();
+      announce(t('Добавлено в корзину: ', 'Added to cart: ') + title);
+      if (!btn.dataset.busy) {
+        btn.dataset.busy = '1';
+        btn.textContent = '✓';
+        setTimeout(function () { btn.textContent = t('В корзину', 'Add to cart'); delete btn.dataset.busy; }, 900);
+      }
+    });
+  });
+
+  render();
+  window.__cartLang = function () { render(); };
+})();
+
+/* ---------- 5b. Мультиязычность (RU/EN) ---------- */
+(function () {
+  var lang = currentLang;
+  var EN = {
+    about: 'About us', catalog: 'Catalog', promo: 'Offers', bonus: 'Bonuses', contacts: 'Contacts', reviews: 'Reviews',
+    heroTitle: 'Books that purr with comfort. Give yourself a fluffy mood!',
+    heroSub: 'A shop of kind stories for cat lovers and good books.',
+    cta1: 'Browse books', cta2: 'Offers & bonuses',
+    aboutTitle: 'About us',
+    catalogTitle: 'Popular books',
+    catalogLead: 'Four stories people choose most. Hover to read the annotation — or tap the button on mobile.',
+    promoTitle: 'Offers and bonus program',
+    promoLead: 'Little niceties that make a purchase even cozier.',
+    reviewsTitle: 'Customer reviews',
+    reviewsLead: 'What readers say after finding their book.',
+    contactsTitle: 'Contacts and hours',
+    contactsLead: 'Drop by, write or call — we are always glad.',
+    addr: 'Address', hours: 'Working hours', phone: 'Phone', email: 'Email',
+    footAbout: 'About the shop', footDelivery: 'Delivery & payment', footReturn: 'Returns', footPrivacy: 'Privacy policy',
+    cartTitle: 'Cart', cartTotal: 'Total', cartClear: 'Clear cart',
+    addToCart: 'Add to cart', annot: 'Annotation', collapse: 'Collapse'
+  };
+
+  function setText(sel, en) {
+    document.querySelectorAll(sel).forEach(function (el) {
+      if (!el.dataset.ru) el.dataset.ru = el.textContent;
+      el.textContent = lang === 'en' ? en : el.dataset.ru;
+    });
+  }
+
+  function apply() {
+    document.documentElement.lang = lang;
+    var navMap = { '#about': 'about', '#catalog': 'catalog', '#promo': 'promo', '#bonus': 'bonus', '#contacts': 'contacts', '#reviews': 'reviews' };
+    document.querySelectorAll('.nav a').forEach(function (a) {
+      var key = navMap[a.getAttribute('href')];
+      if (!key) return;
+      if (!a.dataset.ru) a.dataset.ru = a.textContent;
+      a.textContent = lang === 'en' ? EN[key] : a.dataset.ru;
+    });
+    setText('#hero-title', EN.heroTitle);
+    setText('.hero-sub', EN.heroSub);
+    setText('.hero-actions .btn-primary', EN.cta1);
+    setText('.hero-actions .btn-ghost', EN.cta2);
+    setText('#about-title', EN.aboutTitle);
+    setText('#catalog-title', EN.catalogTitle);
+    setText('#catalog .section-lead', EN.catalogLead);
+    setText('#promo-title', EN.promoTitle);
+    setText('#promo .section-lead', EN.promoLead);
+    setText('#reviews-title', EN.reviewsTitle);
+    setText('#reviews .section-lead', EN.reviewsLead);
+    setText('#contacts-title', EN.contactsTitle);
+    setText('#contacts .section-lead', EN.contactsLead);
+    setText('#cart-title', EN.cartTitle);
+    setText('.cart-total-row span:first-child', EN.cartTotal);
+    setText('.cart-clear', EN.cartClear);
+    var labels = [EN.addr, EN.hours, EN.phone, EN.email];
+    document.querySelectorAll('.contact-row strong').forEach(function (el, i) {
+      if (!el.dataset.ru) el.dataset.ru = el.textContent;
+      if (labels[i]) el.textContent = lang === 'en' ? labels[i] : el.dataset.ru;
+    });
+    var footEn = [EN.footAbout, EN.footDelivery, EN.footReturn, EN.footPrivacy];
+    document.querySelectorAll('.footer-links a').forEach(function (el, i) {
+      if (!el.dataset.ru) el.dataset.ru = el.textContent;
+      if (footEn[i]) el.textContent = lang === 'en' ? footEn[i] : el.dataset.ru;
+    });
+    document.querySelectorAll('.btn-buy').forEach(function (b) {
+      if (!b.dataset.busy) b.textContent = lang === 'en' ? EN.addToCart : 'В корзину';
+    });
+    document.querySelectorAll('.book-toggle').forEach(function (b) {
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.textContent = lang === 'en' ? (open ? EN.collapse : EN.annot) : (open ? 'Свернуть' : 'Аннотация');
+    });
+    document.querySelectorAll('.lang-btn').forEach(function (b) {
+      var active = b.getAttribute('data-lang') === lang;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (window.__cartLang) window.__cartLang();
+  }
+
+  function setLang(l) {
+    lang = l; currentLang = l;
+    try { localStorage.setItem('murknigi-lang', l); } catch (e) {}
+    apply();
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+  });
+
+  apply();
+})();
+
+/* ---------- 6. Кнопка «Наверх» ---------- */
+(function () {
+  var toTop = document.querySelector('.to-top');
+  if (!toTop) return;
+  var showAt = 600;
+
+  function update() {
+    if (window.scrollY > showAt) {
+      toTop.classList.add('visible');
+    } else {
+      toTop.classList.remove('visible');
+    }
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+});
+</script>
+
+<!-- Кнопка «Наверх» -->
+<button class="to-top" type="button" aria-label="Наверх">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5M12 5l-5 5M12 5l5 5"/>
+  </svg>
+</button>
+
+<!-- Корзина -->
+<div class="cart-backdrop" hidden></div>
+<aside class="cart-panel" id="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+  <div class="cart-panel-head">
+    <h3 id="cart-title">Корзина</h3>
+    <button class="cart-close" type="button" aria-label="Закрыть корзину">×</button>
+  </div>
+  <div class="cart-items" id="cart-items"></div>
+  <div class="cart-panel-foot">
+    <div class="cart-total-row"><span>Итого</span><span id="cart-total">0 ₽</span></div>
+    <button class="cart-clear" type="button">Очистить корзину</button>
+  </div>
+</aside>
+<div class="sr-live" id="cart-live" role="status" aria-live="polite"></div>
+
+</body>
+</html>

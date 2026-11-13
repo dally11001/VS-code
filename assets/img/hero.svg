@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Уютный книжный магазин с котиком">
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A2A22"/>
+      <stop offset=".55" stop-color="#5C3826"/>
+      <stop offset="1" stop-color="#8B4A2B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".72" cy=".28" r=".62">
+      <stop offset="0" stop-color="#FFB24B" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#FFB24B" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="paws" width="120" height="120" patternUnits="userSpaceOnUse">
+      <g fill="#FFD8A8" fill-opacity=".08">
+        <ellipse cx="60" cy="78" rx="18" ry="14"/>
+        <circle cx="38" cy="56" r="8"/><circle cx="56" cy="46" r="8"/>
+        <circle cx="76" cy="48" r="8"/><circle cx="92" cy="64" r="6.5"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#hg)"/>
+  <rect width="1600" height="900" fill="url(#paws)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g fill="#FFF3E2" fill-opacity=".16">
+    <rect x="1150" y="560" width="52" height="260" rx="6"/>
+    <rect x="1210" y="600" width="44" height="220" rx="6"/>
+    <rect x="1262" y="540" width="58" height="280" rx="6"/>
+    <rect x="1328" y="610" width="46" height="210" rx="6"/>
+    <rect x="1382" y="575" width="50" height="245" rx="6"/>
+  </g>
+  <g transform="translate(1275 300) scale(1.7)" fill="#2A1A12" fill-opacity=".55">
+    <path d="M28 37 L22 8 L49 22 Z"/>
+    <path d="M72 37 L78 8 L51 22 Z"/>
+    <ellipse cx="50" cy="55" rx="28" ry="25"/>
+  </g>
+  <g transform="translate(1275 300) scale(1.7)" fill="#FFE9C9">
+    <ellipse cx="40" cy="50" rx="3.6" ry="4.6"/>
+    <ellipse cx="60" cy="50" rx="3.6" ry="4.6"/>
+  </g>
+  <ellipse cx="1340" cy="860" rx="360" ry="70" fill="#2A1A12" fill-opacity=".28"/>
+</svg>
